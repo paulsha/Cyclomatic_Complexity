@@ -47,6 +47,18 @@ and console output of this form from the worker nodes:
 ```
 To understand the ouput, consult the code.
 
+Note that to make the above work, you will need to build and install an image in your docker instance. Consult documentation for details 
+but the short cut is to do something like the following:
+
+```
+stack docker pull
+stack --docker build
+stack --docker image container
+```
+
+Note also that to make this repository work with docker you will need to set the resolver in the `stack.yml` file to an `LTS` release
+rather than a `nightly` release. Fro example, lts-8.24 should work fine.
+
 __Docker-Compose__
 
 The basic architecture of the work stealing pattern has a manager node as a central component surrounded by a set of
