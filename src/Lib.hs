@@ -26,22 +26,26 @@ import           Control.Monad
 import           Network.Transport.TCP                              (createTransport,
                                                                      defaultTCPParameters)
 import           PrimeFactors
+import           Shell
 import           System.Environment                                 (getArgs)
 import           System.Exit
-
--- this is the work we get workers to do. It could be anything we want. To keep things simple, we'll calculate the
--- number of prime factors for the integer passed.
-doWork :: Integer -> Integer
-doWork = numPrimeFactors
 
 -- | worker function.
 -- This is the function that is called to launch a worker. It loops forever, asking for work, reading its message queue
 -- and sending the result of runnning numPrimeFactors on the message content (an integer).
-worker :: ( ProcessId  -- The processid of the manager (where we send the results of our work)
-         , ProcessId) -- the process id of the work queue (where we get our work from)
+worker :: (ProcessId  -- The processid of the manager (where we send the results of our work)
+         , ProcessId -- the process id of the work queue (where we get our work from)
+         , String) -- The repo to clone
        -> Process ()
-worker (manager, workQueue) = do
+worker (manager, workQueue, repo) = do
     us <- getSelfPid              -- get our process identifier
+
+    output <- liftIO $ cloneGitRepo $ repo
+    liftIO $ putStrLn $ output
+
+    total <- liftIO $ totalCommits
+    liftIO $ putStrLn $ ("Total Commits: " ++ (show total))
+
     liftIO $ putStrLn $ "Starting worker: " ++ show us
     go us
   where
@@ -55,7 +59,12 @@ worker (manager, workQueue) = do
       receiveWait
         [ match $ \n  -> do
             liftIO $ putStrLn $ "[Node " ++ (show us) ++ "] given work: " ++ show n
-            send manager (doWork n)
+            liftIO $ resetMaster
+            liftIO $ (resetToPrevCommit n)
+            liftIO $ putStrLn $ "Going to compute now!"
+            total <- liftIO $ computeComplex
+            liftIO $ putStrLn $ "Computed " ++ (show total) ++ "!"
+            send manager total
             liftIO $ putStrLn $ "[Node " ++ (show us) ++ "] finished work."
             go us -- note the recursion this function is called again!
         , match $ \ () -> do
@@ -65,17 +74,23 @@ worker (manager, workQueue) = do
 
 remotable ['worker] -- this makes the worker function executable on a remote node
 
-manager :: Integer    -- The number range we wish to generate work for (there will be n work packages)
+manager :: String    -- The number range we wish to generate work for (there will be n work packages)
         -> [NodeId]   -- The set of cloud haskell nodes we will initalise as workers
         -> Process Integer
-manager n workers = do
+manager repo workers = do
   us <- getSelfPid
+
+  output <- liftIO $ cloneGitRepo $ repo
+  liftIO $ putStrLn $ output
+
+  total <- liftIO $ totalCommits
+  liftIO $ putStrLn $ ("Total Commits: " ++ (show total))
 
   -- first, we create a thread that generates the work tasks in response to workers
   -- requesting work.
   workQueue <- spawnLocal $ do
     -- Return the next bit of work to be done
-    forM_ [1 .. n] $ \m -> do
+    forM_ [0 .. total-1] $ \m -> do
       pid <- expect   -- await a message from a free worker asking for work
       send pid m     -- send them work
 
@@ -88,11 +103,11 @@ manager n workers = do
 
   -- Next, start worker processes on the given cloud haskell nodes. These will start
   -- asking for work from the workQueue thread immediately.
-  forM_ workers $ \ nid -> spawn nid ($(mkClosure 'worker) (us, workQueue))
+  forM_ workers $ \ nid -> spawn nid ($(mkClosure 'worker) (us, workQueue, repo))
   liftIO $ putStrLn $ "[Manager] Workers spawned"
   -- wait for all the results from the workers and return the sum total. Look at the implementation, whcih is not simply
   -- summing integer values, but instead is expecting results from workers.
-  sumIntegers (fromIntegral n)
+  sumIntegers (fromIntegral total)
 
 -- note how this function works: initialised with n, the number range we started the program with, it calls itself
 -- recursively, decrementing the integer passed until it finally returns the accumulated value in go:acc. Thus, it will
@@ -115,15 +130,16 @@ rtable = Lib.__remoteTable initRemoteTable
 someFunc :: IO ()
 someFunc = do
 
+  fetchDeps
 
   args <- getArgs
 
   case args of
-    ["manager", host, port, n] -> do
+    ["manager", host, port, repo] -> do
       putStrLn "Starting Node as Manager"
       backend <- initializeBackend host port rtable
       startMaster backend $ \workers -> do
-        result <- manager (read n) workers
+        result <- manager (read repo) workers
         liftIO $ print result
     ["worker", host, port] -> do
       putStrLn "Starting Node as Worker"
