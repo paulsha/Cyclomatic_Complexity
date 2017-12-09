@@ -1,5 +1,6 @@
 
 {-# LANGUAGE BangPatterns    #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 --{-# CPP #-}
 
@@ -22,13 +23,17 @@ import           Control.Distributed.Process
 import           Control.Distributed.Process.Backend.SimpleLocalnet
 import           Control.Distributed.Process.Closure
 import           Control.Distributed.Process.Node                   (initRemoteTable)
+import           Control.Distributed.Process.Internal.Type
 import           Control.Monad
 import           Network.Transport.TCP                              (createTransport,
                                                                      defaultTCPParameters)
+import           Data.IORef	
+import           Data.Text.Lazy																 
 import           PrimeFactors
 import           Shell
 import           System.Environment                                 (getArgs)
 import           System.Exit
+import           Web.Scotty
 
 -- | worker function.
 -- This is the function that is called to launch a worker. It loops forever, asking for work, reading its message queue
@@ -92,6 +97,7 @@ manager repo workers = do
     -- Return the next bit of work to be done
     forM_ [0 .. total-1] $ \m -> do
       pid <- expect   -- await a message from a free worker asking for work
+      liftIO $ putStrLn $ "Sending " ++ (show pid) ++ " work: " ++ (show m)
       send pid m     -- send them work
 
     -- Once all the work is done tell the workers to terminate. We do this by sending every worker who sends a message
@@ -125,6 +131,15 @@ sumIntegers = go 0
 rtable :: RemoteTable
 rtable = Lib.__remoteTable initRemoteTable
 
+getNum :: Backend -> String -> IO Integer
+getNum backend repo = do
+                        num <- newIORef 0
+                        startMaster backend $ \workers -> do
+                          result <- (manager repo workers)
+                          liftIO $ writeIORef num result
+                        result <- readIORef num
+                        return result
+
 -- | This is the entrypoint for the program. We deal with program arguments and launch up the cloud haskell code from
 -- here.
 someFunc :: IO ()
@@ -135,12 +150,14 @@ someFunc = do
   args <- getArgs
 
   case args of
-    ["manager", host, port, repo] -> do
+    ["manager", host, port] -> do
       putStrLn "Starting Node as Manager"
       backend <- initializeBackend host port rtable
-      startMaster backend $ \workers -> do
-        result <- manager (read repo) workers
-        liftIO $ print result
+      scotty 3000 $ do
+        get "/complex" $ do
+          repo <- param "repo"
+          result <- liftIO $ (getNum backend repo)
+          html $ pack $ (show result)
     ["worker", host, port] -> do
       putStrLn "Starting Node as Worker"
       backend <- initializeBackend host port rtable

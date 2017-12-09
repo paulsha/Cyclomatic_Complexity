@@ -22,6 +22,8 @@ library
                      , network-transport-tcp
                      , distributed-process
                      , distributed-process-simplelocalnet
+					 , text
+					 , scotty
                      , process
   default-language:    Haskell2010
 
