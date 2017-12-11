@@ -1,0 +1,3 @@
+stack exec complexity-api worker localhost 8000 &
+stack exec complexity-api worker localhost 8001 &
+stack exec complexity-api worker localhost 8002

@@ -1,69 +1,46 @@
-The purpose of this project is to provide a baseline demonstration of the use of cloudhaskell in the context of the
-code complexity measurement individual programming task. The cloud haskell platform provides an elegant set of
-features that support the construction of a wide variety of multi-node distributed systems commuinication
-architectures. A simple message passing abstraction forms the basis of all communication.
+# Argon Cyclomatic Complexity Project
 
-This project provides a command line switch for starting the application in master or worker mode. It is implemented
-using the work-stealing pattern described in http://www.well-typed.com/blog/71/. Comments below describe how it
-operates. A docker-compose.yml file is provided that supports the launching of a master and set of workers.
+## Introduction
 
-To use, build and do somethign like the following to start some clients:
+This project is focused on the efficient computation of code complexity for a given repository, cycling through every  commit in the repo, utilising a set of nodes as appropriate to minimise execution time from submission to result return.
 
-```
-stack exec use-cloudhaskell-exe worker localhost 8000 &
-stack exec use-cloudhaskell-exe worker localhost 8001 &
-stack exec use-cloudhaskell-exe worker localhost 8002 &
-stack exec use-cloudhaskell-exe worker localhost 8003 &
-```
-Or alternative, a docker-compose.yml file is provided that supports the launching of a set of workers:
+## Implementation
 
-```
-docker-compose up
-```
+I used the [CloudHaskell](https://bitbucket.org/esjmb/use-cloudhaskell) and [Argon](https://github.com/rubik/argon) libraries to distribute the work among worker nodes and to compute the cyclomatic complexities of each .hs file for each commit in the given repository.
 
-And then start the manager as follows:
+To obtain the repository’s working folder, I send a command to clone the repo into my own folder (remove it then once the work is completed). I then recursively crawl through the folder and obtain the absolute file path for ALL files in the repo directory and then filter the list of files for only .hs files because they are all that [Argon](https://github.com/rubik/argon) works on.
 
-```
-stack exec use-cloudhaskell-exe manager localhost 8005 500
-```
+Once these are obtained I send these file paths to the workers to get the complexities and return the results and repeat for every commit in the repo.
 
-You will see console output of this form from from the manager node:
+## Running
 
-```
-Starting Node as Manager
-[Manager] Workers spawned
-1376
-```
+1. Clone this repo `git clone https://craig1901/complexity_api`
+2. `stack build` inside the directory
+3. `bash workers.sh` to create the workers (you can open this file to add more or use less)
+4. `bash run.sh <repo to compute clyclomatic complexity>`
+5. View your results!
 
-and console output of this form from the worker nodes:
+## Results
 
-```
-[Node pid://localhost:8000:0:11] given work: 1
-[Node pid://localhost:8000:0:11] finished work.
-[Node pid://localhost:8000:0:11] given work: 2
-[Node pid://localhost:8000:0:11] finished work.
-[Node pid://localhost:8000:0:11] given work: 3
-[Node pid://localhost:8000:0:11] finished work.
-```
-To understand the ouput, consult the code.
+For results on this project, I collected the time it took to complete the computation of the cyclomatic complexities for all commits for a given repo. As can be seen from the graph below, the use of workers to complete this task is very useful where we have a drastic drop in completion time when we increase from 1 worker to 2. This project was done on local development so all workers were all executed on the same machine, which is not the intended use of a distributed project such as this so if all workers were on different machines, the completion time would decrease even more as the worker count increased.
 
-__Docker-Compose__
+Results based on this [Repository](https://github.com/craig1901/chatServer/):
 
-The basic architecture of the work stealing pattern has a manager node as a central component surrounded by a set of
-worker nodes. Each worker node is presumed to execute on a different node such that the total computational capacity of
-the worker node set are available to us to deliver processing. 
+### Table
 
-Launching worker nodes individually is inconvenient and so I have added a `docker-compose.yml` file to the project. To
-launch a set of worker nodes, run:
+| # of Workers | Time (s) |
+| ------------- | --------- |
+| 1 | 85.32 |
+| 2 | 55.42 |
+| 3 | 53.62 |
+| 4 | 51.81 |
+| 5 | 51.47 |
+| 6 | 49.53 |
+| 7 | 48.93 |
+| 8 | 49.09 |
+| 9 | 48.33 |
+| 10 | 48.73 |
 
-```
-docker-compose up
-```
+### Graph
 
-One may now launch a manager node to passwork for these nodes:
-
-``` 
-stack exec use-cloudhaskell-exe manager localhost 8085 100
-```
-
-where the final parameter is the size of the number range (see the code to see the specifics on what the project is calculating). Note that when you execute the system in this way you will not see console output from the worker nodes as the worker function has not been written to gather output to the console.
+![Workers vs Time (s) Graph](workers.jpg)
