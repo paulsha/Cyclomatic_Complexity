@@ -33,8 +33,8 @@ main = do
         startManagerNode commits backend workFolder
         end <- getCurrentTime
         liftIO $ deleteLocalRepo repoFolderName
-        let exec = diffUTCTime end start
-        putStrLn $ "Computation timeL" ++ (show executionTime) ++ "\n"
+        let execTime = diffUTCTime end start
+        putStrLn $ "Computation timeL" ++ (show execTime) ++ "\n"
       ["worker", host, port] -> do
         putStrLn "Starting Node as Worker"
         backend <- initializeBackend host port rtable
