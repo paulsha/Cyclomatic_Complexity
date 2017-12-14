@@ -27,6 +27,6 @@ Please Argon is installed and available in the terminal using 'argon'.
 ### Results
 The output of each analysis is a time taken to compute the cyclomatic complexity. By running the analysis over a number of iterations,
 while increasing the number of workers each time, we can plot the relationship between the number of nodes and time taken.
-Note that the data below is from an AMD V120 Single Core Processor.
+Note that the data below is from an AMD V120 Single Core Processor calculating the complexity of this repository.
 
 ![Score](Results_Chart.PNG)
