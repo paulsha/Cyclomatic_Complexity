@@ -21,7 +21,7 @@ deleteLocalRepo :: String -> IO ()
 deleteLocalRepo repo = do
     callProcess "rm" ["-rf", repo]
     putStrLn $ repo ++ " removed now that the work is done.\n"
-	
+
 getCommits :: String -> IO [String]
 getCommits repo =  do
     commits <- command_Pipe("git", "--git-dir " ++ repo ++ "/.git log --pretty=format:'%H' ")
