@@ -20,7 +20,7 @@ Please Argon is installed and available in the terminal using 'argon'.
 ### Running the Analyser
 
 1. Clone and 'stack build' this repo.
-2. Start the X number of worker nodes: `bash workers/X.sh`
+2. Start the X (X < 9) number of worker nodes: `bash workers/X.sh`
 3. Run analysis: `bash start.sh <URL of repo to analyse>`
 
 
