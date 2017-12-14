@@ -1,1 +1,1 @@
-stack exec complexity-api manager localhost 9000 $1
+stack exec cyclo-complex manager localhost 9000 $1
