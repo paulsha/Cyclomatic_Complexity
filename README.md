@@ -33,6 +33,9 @@ Although there was a decrease in time with more than one node, the existence of 
 were limited to one core. If more cores were available, the time would decrease to a great extent as number of nodes increases.
 Theoretically, the rate of decrease as nodes are added would initially be high, with the rate slowing as lots of nodes are added.
 ```
+<span style="display:block;text-align:center">
+![Results](Results_Chart.png)
+</span>
 
 | No. of Workers | Time (s) |
 | ------------- | --------- |
@@ -45,4 +48,3 @@ Theoretically, the rate of decrease as nodes are added would initially be high, 
 | 7 | 43.884991 |
 | 8 | 43.118618 |
 
-![Results](Results_Chart.png)
